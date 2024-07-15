@@ -98,7 +98,7 @@ const logout = async () => {
                   <div class="select-none">{{ $t('title.auditLogs') }}</div>
                 </div>
               </NcMenuItem>
-              <NcMenuItem
+              <!-- <NcMenuItem
                 v-if="isUIAllowed('superAdminAppStore') && !isEeUI"
                 key="apps"
                 class="item"
@@ -112,7 +112,7 @@ const logout = async () => {
 
                   <div class="select-none text-sm">{{ $t('title.appStore') }}</div>
                 </div>
-              </NcMenuItem>
+              </NcMenuItem> -->
               <a-sub-menu key="users" class="!bg-white !my-0">
                 <template #icon>
                   <GeneralIcon icon="users" class="!h-3.5 !w-3.5" />
@@ -140,7 +140,7 @@ const logout = async () => {
                 >
                   <span class="ml-4">{{ $t('title.resetPasswordMenu') }}</span>
                 </NcMenuItem>
-                <NcMenuItem
+                <!-- <NcMenuItem
                   v-if="isUIAllowed('superAdminAppSettings') && !isEeUI"
                   key="settings"
                   class="text-xs item"
@@ -150,7 +150,7 @@ const logout = async () => {
                   @click="navigateTo('/account/users/settings')"
                 >
                   <span class="ml-4">{{ $t('activity.settings') }}</span>
-                </NcMenuItem>
+                </NcMenuItem> -->
               </a-sub-menu>
             </NcMenu>
           </div>

@@ -86,7 +86,7 @@ onMounted(() => {
                 <span class="menu-btn"> {{ $t('general.logout') }}</span>
               </div>
             </NcMenuItem>
-            <NcDivider />
+            <!-- <NcDivider />
             <a
               v-e="['c:nocodb:discord']"
               href="https://discord.gg/5RgZmkW"
@@ -122,7 +122,7 @@ onMounted(() => {
                 <GeneralIcon class="social-icon text-gray-500 group-hover:text-gray-800" icon="ncTwitter" />
                 <span class="menu-btn"> {{ $t('labels.twitter') }} </span>
               </NcMenuItem>
-            </a>
+            </a> -->
             <template v-if="!appInfo.ee">
               <NcDivider />
               <a-popover key="language" class="lang-menu !py-1.5" placement="rightBottom">
@@ -150,7 +150,7 @@ onMounted(() => {
             <template v-if="!isMobileMode">
               <NcDivider />
 
-              <a
+              <!-- <a
                 v-e="['c:nocodb:forum-open']"
                 href="https://community.nocodb.com"
                 target="_blank"
@@ -176,7 +176,7 @@ onMounted(() => {
                 </NcMenuItem>
               </a>
 
-              <NcDivider />
+              <NcDivider /> -->
 
               <DashboardSidebarEEMenuOption v-if="isEeUI" />
 
@@ -191,9 +191,9 @@ onMounted(() => {
     </div>
 
     <template v-if="isMobileMode || appInfo.ee"></template>
-    <div v-else class="flex flex-row w-full justify-between pt-0.5 truncate">
+    <!-- <div v-else class="flex flex-row w-full justify-between pt-0.5 truncate">
       <GeneralJoinCloud />
-    </div>
+    </div> -->
   </div>
 </template>
 
