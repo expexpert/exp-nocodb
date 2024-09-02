@@ -75,6 +75,8 @@ export class ColumnPageObject extends BasePage {
     ltarView,
     custom = false,
     refColumn,
+    buttonType,
+    webhookIndex = 0,
   }: {
     title: string;
     type?: string;
@@ -96,6 +98,8 @@ export class ColumnPageObject extends BasePage {
     ltarView?: string;
     custom?: boolean;
     refColumn?: string;
+    buttonType?: string;
+    webhookIndex?: number;
   }) {
     if (insertBeforeColumnTitle) {
       await this.grid.get().locator(`th[data-title="${insertBeforeColumnTitle}"]`).scrollIntoViewIfNeeded();
@@ -143,7 +147,20 @@ export class ColumnPageObject extends BasePage {
         await this.rootPage.locator('.ant-select-item').locator(`text="${timeFormat}"`).click();
         break;
       case 'Formula':
-        await this.get().locator('.nc-formula-input').fill(formula);
+        await this.get().locator('.inputarea').fill(formula);
+        break;
+      case 'Button':
+        await this.get().locator('.nc-button-type-select').click();
+        await this.rootPage.locator('.ant-select-item').locator(`text="${buttonType}"`).click();
+
+        await this.get().locator('.nc-button-webhook-select').click();
+
+        await this.rootPage.waitForSelector('.nc-list-with-search', {
+          state: 'visible',
+        });
+
+        await this.rootPage.locator(`.nc-unified-list-option-${webhookIndex}`).click();
+
         break;
       case 'QrCode':
         await this.get().locator('.ant-select-single').nth(1).click();
@@ -221,7 +238,6 @@ export class ColumnPageObject extends BasePage {
         if (ltarFilters) {
           await this.ltarOption.addFilters(ltarFilters);
         }
-
 
         if (custom) {
           // enable advance options
@@ -387,9 +403,18 @@ export class ColumnPageObject extends BasePage {
     await this.defaultValueBtn().click();
 
     switch (type) {
-      case 'Formula':
-        await this.get().locator('.nc-formula-input').fill(formula);
+      case 'Formula': {
+        const element = this.get().locator('.inputarea');
+        await element.focus();
+
+        await this.rootPage.keyboard.press('Control+A');
+        await this.rootPage.waitForTimeout(200);
+
+        await this.rootPage.keyboard.press('Backspace');
+        await this.rootPage.waitForTimeout(200);
+        await element.fill(formula);
         break;
+      }
       case 'Duration':
         await this.get().locator('.ant-select-single').nth(1).click();
         await this.rootPage.locator(`.ant-select-item`).getByTestId(format).click();

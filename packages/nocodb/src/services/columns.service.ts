@@ -33,6 +33,7 @@ import {
   CalendarRange,
   Column,
   FormulaColumn,
+  Hook,
   KanbanView,
   Model,
   Source,
@@ -200,10 +201,19 @@ export class ColumnsService {
       Source.get(context, table.source_id),
     );
 
+    // TODO: Refactor the columnUpdate function to handle metaOnly changes and
+    // DB related changes, right now both are mixed up, making this fragile
+    if (param.column.description !== column.description) {
+      await Column.update(context, param.columnId, {
+        description: param.column.description,
+      });
+    }
+
+    // These are the column types whose meta is allowed to be updated
+    // It includes currency, date, datetime where formatting is allowed to update
     const isMetaOnlyUpdateAllowed =
       source?.is_schema_readonly &&
       partialUpdateAllowedTypes.includes(column.uidt);
-
     // check if source is readonly and column type is not allowed
     if (
       source?.is_schema_readonly &&
@@ -212,7 +222,23 @@ export class ColumnsService {
           !readonlyMetaAllowedTypes.includes(param.column.uidt as UITypes))) &&
       !partialUpdateAllowedTypes.includes(column.uidt)
     ) {
+      /*
+      throw error if source is readonly and column type is not allowed
       NcError.sourceMetaReadOnly(source.alias);
+
+      Get all the columns in the table and return
+      */
+      await table.getColumns(context);
+
+      this.appHooksService.emit(AppEvents.COLUMN_UPDATE, {
+        table,
+        column,
+        user: param.req?.user,
+        ip: param.req?.clientIp,
+        req: param.req,
+      });
+
+      return table;
     }
 
     const sqlClient = await reuseOrSave('sqlClient', reuse, async () =>
@@ -221,6 +247,8 @@ export class ColumnsService {
 
     const sqlClientType = sqlClient.knex.clientType();
 
+    // The maxLength of column name is different for different databases
+    // This is the maximum length of column name allowed in the database
     const mxColumnLength = Column.getMaxColumnNameLength(sqlClientType);
 
     if (!isVirtualCol(param.column) && !isMetaOnlyUpdateAllowed) {
@@ -295,6 +323,8 @@ export class ColumnsService {
       formula_raw?: string;
       parsed_tree?: any;
       colOptions?: any;
+      fk_webhook_id?: string;
+      type?: 'webhook' | 'url';
     } & Partial<Pick<ColumnReqType, 'column_order'>>;
 
     if (
@@ -310,6 +340,7 @@ export class ColumnsService {
         UITypes.Barcode,
         UITypes.ForeignKey,
         UITypes.Links,
+        UITypes.Button,
       ].includes(column.uidt)
     ) {
       if (column.uidt === colBody.uidt) {
@@ -365,6 +396,68 @@ export class ColumnsService {
             ...column,
             ...colBody,
           });
+        } else if (column.uidt === UITypes.Button) {
+          if (colBody.type === 'url') {
+            colBody.formula = await substituteColumnAliasWithIdInFormula(
+              colBody.formula_raw || colBody.formula,
+              table.columns,
+            );
+            colBody.parsed_tree = await validateFormulaAndExtractTreeWithType({
+              formula: colBody.formula || colBody.formula_raw,
+              columns: table.columns,
+              column,
+              clientOrSqlUi: source.type as any,
+              getMeta: async (modelId) => {
+                const model = await Model.get(context, modelId);
+                await model.getColumns(context);
+                return model;
+              },
+            });
+
+            try {
+              const baseModel = await reuseOrSave(
+                'baseModel',
+                reuse,
+                async () =>
+                  Model.getBaseModelSQL(context, {
+                    id: table.id,
+                    dbDriver: await reuseOrSave('dbDriver', reuse, async () =>
+                      NcConnectionMgrv2.get(source),
+                    ),
+                  }),
+              );
+              await formulaQueryBuilderv2(
+                baseModel,
+                colBody.formula,
+                null,
+                table,
+                null,
+                {},
+                null,
+                true,
+                colBody.parsed_tree,
+              );
+            } catch (e) {
+              console.error(e);
+              NcError.badRequest('Invalid Formula');
+            }
+          } else if (colBody.type === 'webhook') {
+            if (!colBody.fk_webhook_id) {
+              NcError.badRequest('Webhook not found');
+            }
+
+            const hook = await Hook.get(context, colBody.fk_webhook_id);
+
+            if (!hook || !hook.active || hook.event !== 'manual') {
+              NcError.badRequest('Webhook not found');
+            }
+          }
+
+          await Column.update(context, column.id, {
+            // title: colBody.title,
+            ...column,
+            ...colBody,
+          });
         } else {
           if (colBody.title !== column.title) {
             await Column.updateAlias(context, param.columnId, {
@@ -383,6 +476,7 @@ export class ColumnsService {
               meta: colBody.meta,
             });
           }
+
           if (
             'validate' in colBody &&
             ([UITypes.URL, UITypes.PhoneNumber, UITypes.Email].includes(
@@ -1469,6 +1563,7 @@ export class ColumnsService {
       });
     }
 
+    // Get all the columns in the table and return
     await table.getColumns(context);
 
     this.appHooksService.emit(AppEvents.COLUMN_UPDATE, {
@@ -1716,6 +1811,70 @@ export class ColumnsService {
         });
 
         break;
+      case UITypes.Button: {
+        if (colBody.type === 'url') {
+          colBody.formula = await substituteColumnAliasWithIdInFormula(
+            colBody.formula_raw || colBody.formula,
+            table.columns,
+          );
+          colBody.parsed_tree = await validateFormulaAndExtractTreeWithType({
+            formula: colBody.formula,
+            columns: table.columns,
+            column: {
+              ...colBody,
+              colOptions: colBody,
+            },
+            clientOrSqlUi: source.type as any,
+            getMeta: async (modelId) => {
+              const model = await Model.get(context, modelId);
+              await model.getColumns(context);
+              return model;
+            },
+          });
+
+          try {
+            const baseModel = await reuseOrSave('baseModel', reuse, async () =>
+              Model.getBaseModelSQL(context, {
+                id: table.id,
+                dbDriver: await reuseOrSave('dbDriver', reuse, async () =>
+                  NcConnectionMgrv2.get(source),
+                ),
+              }),
+            );
+            await formulaQueryBuilderv2(
+              baseModel,
+              colBody.formula,
+              null,
+              table,
+              null,
+              {},
+              null,
+              true,
+              colBody.parsed_tree,
+            );
+          } catch (e) {
+            console.error(e);
+            NcError.badRequest('Invalid URL Formula');
+          }
+        } else if (colBody.type === 'webhook') {
+          if (!colBody.fk_webhook_id) {
+            colBody.fk_webhook_id = null;
+          }
+
+          const hook = await Hook.get(context, colBody.fk_webhook_id);
+
+          if (!hook || !hook.active || hook.event !== 'manual') {
+            colBody.fk_webhook_id = null;
+          }
+        }
+
+        await Column.insert(context, {
+          ...colBody,
+          fk_model_id: table.id,
+        });
+        break;
+      }
+
       case UITypes.CreatedTime:
       case UITypes.LastModifiedTime:
       case UITypes.CreatedBy:
@@ -2168,6 +2327,7 @@ export class ColumnsService {
       case UITypes.Rollup:
       case UITypes.QrCode:
       case UITypes.Barcode:
+      case UITypes.Button:
         await Column.delete(context, param.columnId, ncMeta);
         break;
 

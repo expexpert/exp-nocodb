@@ -26,6 +26,7 @@ import {
 import NocoCache from '~/cache/NocoCache';
 import Noco from '~/Noco';
 import { BaseModelSqlv2 } from '~/db/BaseModelSqlv2';
+import { FileReference } from '~/models';
 import {
   parseMetaProp,
   prepareForDb,
@@ -52,6 +53,7 @@ export default class Model implements TableType {
 
   table_name: string;
   title: string;
+  description?: string;
 
   mm: BoolType;
 
@@ -139,6 +141,7 @@ export default class Model implements TableType {
     const insertObj = extractProps(model, [
       'table_name',
       'title',
+      'description',
       'mm',
       'order',
       'type',
@@ -591,6 +594,9 @@ export default class Model implements TableType {
       },
     );
 
+    // Delete FileReference
+    await FileReference.bulkDelete(context, { fk_model_id: this.id }, ncMeta);
+
     await NocoCache.deepDel(
       `${CacheScope.MODEL}:${this.id}`,
       CacheDelDirection.CHILD_TO_PARENT,
@@ -748,6 +754,16 @@ export default class Model implements TableType {
       },
       tableId,
     );
+
+    // get default view and update alias
+    {
+      const defaultView = await View.getDefaultView(context, tableId, ncMeta);
+      if (defaultView) {
+        await View.update(context, defaultView.id, {
+          title,
+        });
+      }
+    }
 
     await NocoCache.update(`${CacheScope.MODEL}:${tableId}`, {
       title,
@@ -1082,25 +1098,23 @@ export default class Model implements TableType {
   static async updateMeta(
     context: NcContext,
     tableId: string,
-    meta: string | Record<string, any>,
+    model: Pick<TableReqType, 'meta' | 'description'>,
     ncMeta = Noco.ncMeta,
   ) {
+    const updateObj = extractProps(model, ['description', 'meta']);
+
     // set meta
     const res = await ncMeta.metaUpdate(
       context.workspace_id,
       context.base_id,
       MetaTable.MODELS,
-      prepareForDb({
-        meta,
-      }),
+      prepareForDb(updateObj),
       tableId,
     );
 
     await NocoCache.update(
       `${CacheScope.MODEL}:${tableId}`,
-      prepareForResponse({
-        meta,
-      }),
+      prepareForResponse(updateObj),
     );
 
     return res;
@@ -1124,7 +1138,7 @@ export default class Model implements TableType {
       hasNonDefaultViews: views.length > 1,
     };
 
-    await this.updateMeta(context, modelId, modelMeta, ncMeta);
+    await this.updateMeta(context, modelId, { meta: modelMeta }, ncMeta);
 
     return modelMeta?.hasNonDefaultViews;
   }

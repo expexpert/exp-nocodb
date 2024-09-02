@@ -9,7 +9,7 @@ import {
   partialUpdateAllowedTypes,
   readonlyMetaAllowedTypes,
 } from 'nocodb-sdk'
-import type { ColumnType, FilterType, SelectOptionsType } from 'nocodb-sdk'
+import type { ButtonType, ColumnType, FilterType, SelectOptionsType } from 'nocodb-sdk'
 import Draggable from 'vuedraggable'
 import { onKeyDown, useMagicKeys } from '@vueuse/core'
 import { generateUniqueColumnName } from '~/helpers/parsers/parserHelpers'
@@ -263,6 +263,7 @@ const duplicateField = async (field: TableExplorerColumn) => {
     case UITypes.Lookup:
     case UITypes.Rollup:
     case UITypes.Formula:
+    case UITypes.Button:
       return message.info(t('msg.info.notAvailableAtTheMoment'))
     case UITypes.SingleSelect:
     case UITypes.MultiSelect:
@@ -536,6 +537,12 @@ const isColumnValid = (column: TableExplorerColumn) => {
       return false
     }
   }
+
+  if (column.uidt === UITypes.Button && isNew) {
+    if (column.type === 'url' && !column.formula_raw) return false
+    if (column.type === 'webhook' && !column.fk_webhook_id) return false
+  }
+
   return true
 }
 
@@ -579,6 +586,17 @@ function updateDefaultColumnValues(column: TableExplorerColumn) {
   }
 
   if (column.uidt === UITypes.Formula && column.colOptions?.formula_raw && !column?.formula_raw) {
+    column.formula_raw = column.colOptions?.formula_raw
+  }
+
+  if (column.uidt === UITypes.Button) {
+    const colOptions = column.colOptions as ButtonType
+    column.type = colOptions?.type
+    column.theme = colOptions?.theme
+    column.label = colOptions?.label
+    column.color = colOptions?.color
+    column.fk_webhook_id = colOptions?.fk_webhook_id
+    column.icon = colOptions?.icon
     column.formula_raw = column.colOptions?.formula_raw
   }
 
@@ -911,11 +929,11 @@ watch(
 )
 
 onMounted(async () => {
+  await until(() => !!(meta.value?.id && meta.value?.columns)).toBeTruthy()
+
   if (meta.value && meta.value.id) {
     columnsHash.value = (await $api.dbTableColumn.hash(meta.value.id)).hash
   }
-
-  await until(() => meta.value?.columns)
 
   metaToLocal()
 })
@@ -1185,15 +1203,19 @@ watch(
                               <template #title>{{ $t('msg.clickToCopyFieldId') }}</template>
 
                               <div
-                                class="flex flex-row px-3 py-2 w-46 justify-between items-center group hover:bg-gray-100 cursor-pointer"
+                                class="flex flex-row gap-2 w-[calc(100%_-_12px)] p-2 mx-1.5 rounded-md justify-between items-center group hover:bg-gray-100 cursor-pointer"
                                 data-testid="nc-field-item-action-copy-id"
                                 @click="onClickCopyFieldUrl(field)"
                               >
-                                <div class="flex flex-row items-baseline gap-x-1 font-bold text-xs">
-                                  <div class="text-gray-600">{{ $t('labels.idColon') }}</div>
-                                  <div class="flex flex-row text-gray-600 text-xs" data-testid="nc-field-item-id">
-                                    {{ field.id }}
-                                  </div>
+                                <div
+                                  class="flex flex-row text-gray-500 text-xs items-baseline gap-x-1 font-bold"
+                                  data-testid="nc-field-item-id"
+                                >
+                                  {{
+                                    $t('labels.idColon', {
+                                      fieldId: field.id,
+                                    })
+                                  }}
                                 </div>
                                 <NcButton size="xsmall" type="secondary" class="!group-hover:bg-gray-100">
                                   <GeneralIcon v-if="isFieldIdCopied" icon="check" />
@@ -1366,15 +1388,19 @@ watch(
                             <template #title>{{ $t('msg.clickToCopyFieldId') }}</template>
 
                             <div
-                              class="flex flex-row px-3 py-2 w-46 justify-between items-center group hover:bg-gray-100 cursor-pointer"
+                              class="flex flex-row gap-2 w-[calc(100%_-_12px)] p-2 mx-1.5 rounded-md justify-between items-center group hover:bg-gray-100 cursor-pointer"
                               data-testid="nc-field-item-action-copy-id"
                               @click="onClickCopyFieldUrl(displayColumn)"
                             >
-                              <div class="flex flex-row items-baseline gap-x-1 font-bold text-xs">
-                                <div class="text-gray-600">{{ $t('labels.idColon') }}</div>
-                                <div class="flex flex-row text-gray-600 text-xs">
-                                  {{ displayColumn.id }}
-                                </div>
+                              <div
+                                class="flex flex-row text-gray-500 text-xs items-baseline gap-x-1 font-bold"
+                                data-testid="nc-field-item-id"
+                              >
+                                {{
+                                  $t('labels.idColon', {
+                                    fieldId: displayColumn.id,
+                                  })
+                                }}
                               </div>
                               <NcButton size="xsmall" type="secondary" class="!group-hover:bg-gray-100">
                                 <GeneralIcon v-if="isFieldIdCopied" icon="check" />

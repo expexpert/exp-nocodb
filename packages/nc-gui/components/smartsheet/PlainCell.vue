@@ -1,6 +1,7 @@
 <script lang="ts" setup>
 import {
   type BoolType,
+  type ButtonType,
   type ColumnType,
   type LookupType,
   type RollupType,
@@ -337,6 +338,18 @@ const parseValue = (value: any, col: ColumnType): string => {
   }
   if (isLink(col)) {
     return getLinksValue(value, col)
+  }
+
+  if (isFormula(col) && col?.meta?.display_type) {
+    return parseValue(value, {
+      uidt: col?.meta?.display_type,
+      ...col?.meta?.display_column_meta,
+    })
+  }
+
+  if (isButton(col)) {
+    if ((col.colOptions as ButtonType).type === 'url') return value
+    else return col.colOptions?.label
   }
 
   return value as unknown as string

@@ -39,11 +39,12 @@ const options = computed<SelectProps['options']>(() =>
       }
 
       if (isSystemColumn(metaColumnById?.value?.[c.id!])) {
-        if (isHiddenCol(c)) {
+        if (isHiddenCol(c, meta.value)) {
           /** ignore mm relation column, created by and last modified by system field */
           return false
         }
       }
+      if (c.uidt === UITypes.Button) return false
       return true
     }) ||
     meta.value?.columns?.filter((c: ColumnType) => {
@@ -60,7 +61,7 @@ const options = computed<SelectProps['options']>(() =>
         return true
       }
       if (isSystemColumn(metaColumnById?.value?.[c.id!])) {
-        if (isHiddenCol(c)) {
+        if (isHiddenCol(c, meta.value)) {
           /** ignore mm relation column, created by and last modified by system field */
           return false
         }
@@ -71,7 +72,7 @@ const options = computed<SelectProps['options']>(() =>
           /** hide system columns if not enabled */
           showSystemFields.value
         )
-      } else if (c.uidt === UITypes.QrCode || c.uidt === UITypes.Barcode || c.uidt === UITypes.ID) {
+      } else if (c.uidt === UITypes.QrCode || c.uidt === UITypes.Barcode || c.uidt === UITypes.ID || c.uidt === UITypes.Button) {
         return false
       } else if (isSort) {
         /** ignore hasmany and manytomany relations if it's using within sort menu */

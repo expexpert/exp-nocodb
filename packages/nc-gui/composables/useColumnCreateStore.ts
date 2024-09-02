@@ -48,6 +48,8 @@ const [useProvideColumnCreateStore, useColumnCreateStore] = createInjectionState
 
     const disableSubmitBtn = ref(false)
 
+    const isWebhookCreateModalOpen = ref(false)
+
     const isEdit = computed(() => !!column?.value?.id)
 
     const isMysql = computed(() => isMysqlFunc(meta.value?.source_id ? meta.value?.source_id : Object.keys(sqlUis.value)[0]))
@@ -71,6 +73,11 @@ const [useProvideColumnCreateStore, useColumnCreateStore] = createInjectionState
     const setAdditionalValidations = (validations: ValidationsObj) => {
       additionalValidations.value = { ...additionalValidations.value, ...validations }
     }
+
+    const removeAdditionalValidation = (key: string) => {
+      delete additionalValidations.value[key]
+    }
+
     const setPostSaveOrUpdateCbk = (cbk: typeof postSaveOrUpdateCbk) => {
       postSaveOrUpdateCbk = cbk
     }
@@ -78,6 +85,7 @@ const [useProvideColumnCreateStore, useColumnCreateStore] = createInjectionState
     const defaultType = isMetaReadOnly.value ? UITypes.Formula : UITypes.SingleLineText
     const formState = ref<Record<string, any>>({
       title: '',
+      description: '',
       uidt: fromTableExplorer?.value ? defaultType : null,
       custom: {},
       ...clone(column.value || {}),
@@ -399,6 +407,7 @@ const [useProvideColumnCreateStore, useColumnCreateStore] = createInjectionState
       onDataTypeChange,
       onUidtOrIdTypeChange,
       setAdditionalValidations,
+      removeAdditionalValidation,
       resetFields,
       validate,
       validateInfos,
@@ -407,6 +416,7 @@ const [useProvideColumnCreateStore, useColumnCreateStore] = createInjectionState
       sqlUi,
       isMssql,
       isPg,
+      isWebhookCreateModalOpen,
       isMysql,
       isXcdbBase,
       disableSubmitBtn,
