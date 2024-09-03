@@ -180,7 +180,8 @@ export default class BaseUser {
     const cachedList = await NocoCache.getList(CacheScope.BASE_USER, [base_id]);
     let { list: baseUsers } = cachedList;
     const { isNoneList } = cachedList;
-    const fullVersionCols = ['invite_token', 'created_at'];
+
+    const fullVersionCols = ['invite_token'];
 
     if (!isNoneList && !baseUsers.length) {
       const queryBuilder = ncMeta
