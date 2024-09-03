@@ -232,6 +232,7 @@ export default class User implements UserType {
       query?: string;
     } = {},
     ncMeta = Noco.ncMeta,
+    baseIds?: Array<String>
   ) {
     let queryBuilder = ncMeta.knex(MetaTable.USERS);
 
@@ -259,6 +260,15 @@ export default class User implements UserType {
           )
           .as('projectsCount'),
       );
+
+      if(baseIds && baseIds.length){
+        const subquery = ncMeta
+        .knex(MetaTable.PROJECT_USERS)
+        .select(`${MetaTable.PROJECT_USERS}.fk_user_id`)
+        .whereIn(`${MetaTable.PROJECT_USERS}.base_id`, baseIds)
+        .distinct();
+        queryBuilder.whereIn(`${MetaTable.USERS}.id`, subquery);
+      }
     if (query) {
       queryBuilder.where(function () {
         this.where(function () {

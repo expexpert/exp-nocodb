@@ -114,9 +114,10 @@ export class UsersService {
 
     let roles: string = OrgUserRoles.CREATOR;
 
-    const isFirstUser = await User.isFirst();
+    // const isFirstUser = await User.isFirst();
 
-    if (isFirstUser && process.env.NC_CLOUD !== 'true') {
+    // if (isFirstUser && process.env.NC_CLOUD !== 'true') {
+    if (process.env.NC_CLOUD !== 'true') {
       roles = `${OrgUserRoles.CREATOR},${OrgUserRoles.SUPER_ADMIN}`;
       // todo: update in nc_store
       // roles = 'owner,creator,editor'
@@ -148,7 +149,8 @@ export class UsersService {
     });
 
     // if first user and super admin, create a base
-    if (isFirstUser && process.env.NC_CLOUD !== 'true') {
+    // if (isFirstUser && process.env.NC_CLOUD !== 'true') {
+    if (process.env.NC_CLOUD !== 'true') {
       // todo: update swagger type
       (user as any).createdProject = await this.createDefaultProject(user, req);
     }

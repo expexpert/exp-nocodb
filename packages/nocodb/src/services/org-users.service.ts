@@ -31,8 +31,9 @@ export class OrgUsersService {
   async userList(param: {
     // todo: add better typing
     query: Record<string, any>;
+    baseIds?: Array<string>;
   }) {
-    return await User.list(param.query);
+    return await User.list(param.query, undefined , param.baseIds);
   }
 
   async userUpdate(param: {

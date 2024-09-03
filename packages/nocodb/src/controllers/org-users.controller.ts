@@ -14,7 +14,7 @@ import { OrgUserRoles } from 'nocodb-sdk';
 import { GlobalGuard } from '~/guards/global/global.guard';
 import { PagedResponseImpl } from '~/helpers/PagedResponse';
 import { OrgUsersService } from '~/services/org-users.service';
-import { User } from '~/models';
+import { BaseUser, User } from '~/models';
 import { Acl } from '~/middlewares/extract-ids/extract-ids.middleware';
 import { MetaApiLimiterGuard } from '~/guards/meta-api-limiter.guard';
 import { NcRequest } from '~/interface/config';
@@ -31,9 +31,13 @@ export class OrgUsersController {
     blockApiTokenAccess: true,
   })
   async userList(@Req() req: NcRequest) {
+    const bases = await BaseUser.getProjectsList(req?.user?.id, {});
+    const baseIds = bases?.map(base => base?.id);
+
     return new PagedResponseImpl(
       await this.orgUsersService.userList({
         query: req.query,
+        baseIds
       }),
       {
         ...req.query,
