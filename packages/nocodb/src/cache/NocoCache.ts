@@ -71,7 +71,8 @@ export default class NocoCache {
     list: any[];
     isNoneList: boolean;
   }> {
-    if (this.cacheDisabled)
+    // if (this.cacheDisabled)
+    if (true)
       return Promise.resolve({
         list: [],
         isNoneList: false,

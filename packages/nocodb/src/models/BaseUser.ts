@@ -197,7 +197,7 @@ export default class BaseUser {
           `${MetaTable.PROJECT_USERS}.roles as roles`,
         );
 
-      queryBuilder.leftJoin(MetaTable.PROJECT_USERS, function () {
+      queryBuilder.join(MetaTable.PROJECT_USERS, function () {
         this.on(
           `${MetaTable.PROJECT_USERS}.fk_user_id`,
           '=',
